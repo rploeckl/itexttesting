@@ -1,0 +1,9 @@
+*/bin/
+*/obj/
+i7ns-samples-8.0.0*
+Archiv.zip
+.DS_Store
+hello/hello.pdf
+hello/hello.tetml
+invoice/invoice.pdf
+svg/input.svg
