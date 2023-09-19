@@ -10,26 +10,139 @@ using iText.Svg.Processors.Impl;
 using iText.Kernel.Pdf.Xobject;
 using iText.Layout;
 using iText.Layout.Element;
-namespace ConsoleApp1
+using PDFlib_dotnet;
+
+namespace ConsoleApp
 {
     class Program
     {
         private static String SVG_FILE = "input.svg";
         private static String OUTPUT_FILE = "result2.pdf";
 
+        static void itextProcessSVG(string inputFile, string outputFile)
+        {
+            try
+            {
+                PdfDocument pdfDocument = new PdfDocument(new PdfWriter(new FileStream(outputFile, FileMode.Create, FileAccess.Write)));
+                Document doc = new Document(pdfDocument);
+                pdfDocument.AddNewPage(PageSize.A4);
+                try
+                {
+                    FileStream svgPath = File.Open(inputFile, FileMode.Open);
+                    Image image = SvgConverter.ConvertToImage(svgPath, pdfDocument);
+                    image.SetFixedPosition(0, 0);
+                    image.ScaleAbsolute(595, 842);
+                    doc.Add(image);
+                }
+                catch(Exception e){
+                    doc.Add( new Paragraph(e.Message));
+                }
+                doc.Close();
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(" Exception: " + e.Message);
+            }
+        }
+        static void pdflibProcessSVG(string inputFile, string itextoutput, string outputFile)
+        {
+            PDFlib p = null;
+            int graphics;
+            string message = "";
+            byte[] buf = new byte[0];
+            try
+            {
+                p = new PDFlib();
+
+                /* This means we must check return values of load_graphics() etc. */
+                p.set_option("errorpolicy=return");
+
+                p.begin_document("", "");
+                graphics = p.load_graphics("auto", inputFile, "");
+                p.begin_page_ext(0, 0, "width=a4.width height=a4.height");
+                p.fit_graphics(graphics, 0, 0, "boxsize {595 842} fitmethod {meet}");
+                p.end_page_ext("");
+                p.end_document("");
+                buf = p.get_buffer();
+            }
+            catch (PDFlibException e)
+            {
+                message = e.get_errmsg();
+            }
+            p.Dispose();
+
+            int doc, page;
+            try
+            {
+                p = new PDFlib();
+                p.create_pvf("/pvf/input.pdf", buf, "");
+                p.begin_document(outputFile, "");
+                p.begin_page_ext(1190, 842, "");
+                doc = p.open_pdi_document(itextoutput, "");
+                page = p.open_pdi_page(doc, 1,"");
+                p.fit_pdi_page(page, 0,0, "boxsize {595 842}");
+                p.close_pdi_page(page);
+                p.close_pdi_document(doc);
+                if (message == ""){
+                    doc = p.open_pdi_document("/pvf/input.pdf", "");
+                    page = p.open_pdi_page(doc, 1,"");
+                    p.fit_pdi_page(page, 595,0, "boxsize {595 842}");
+                    p.close_pdi_page(page);
+                    p.close_pdi_document(doc);
+                }
+                else
+                {
+                    p.fit_textline(message, 639, 700, "fontname=Helvetica fontsize 12 noembedding");
+
+                }
+                p.end_page_ext("");
+                p.end_document("");
+            }
+            catch (PDFlibException e)
+            {
+                message = e.get_errmsg();
+            }
+            p.Dispose();
+
+
+        }
         static void Main(string[] args)
         {
-          PdfDocument pdfDocument = new PdfDocument(new PdfWriter(new FileStream(OUTPUT_FILE, FileMode.Create, FileAccess.Write)));
-          Document doc = new Document(pdfDocument);
-          pdfDocument.AddNewPage(PageSize.A4);
-          ISvgConverterProperties properties = new SvgConverterProperties().SetBaseUri(SVG_FILE);
-          //SvgConverter.DrawOnDocument(new FileStream(SVG_FILE, FileMode.Open, FileAccess.Read, FileShare.Read), doc, 1, properties);
-          FileStream svgPath = File.Open(SVG_FILE, FileMode.Open);
-          Image image = SvgConverter.ConvertToImage(svgPath, pdfDocument);
-          image.SetFixedPosition(0, 400);
-          image.ScaleToFit(500, 360);
-          doc.Add(image);
-          doc.Close();
+            String line;
+            try
+            {
+                if (args.Length != 1)
+                {
+                    Console.WriteLine("usage: dotnet run <listfile>");
+                    return;
+                }
+                //Pass the file path and file name to the StreamReader constructor
+                StreamReader sr = new StreamReader(args[0]);
+                //Read the first line of text
+                line = sr.ReadLine();
+                //Continue to read until you reach end of file
+                while (line != null)
+                {
+                    Console.Write(line);
+                    if (line.StartsWith("#"))
+                    {
+                        Console.Write(" skipped");
+                    }
+                    else
+                    {
+                        itextProcessSVG(line, "output/" + System.IO.Path.GetFileName(line) + ".pdf");
+                        pdflibProcessSVG(line, "output/" + System.IO.Path.GetFileName(line) + ".pdf", "output2/" + System.IO.Path.GetFileName(line) + ".pdf");
+                    }
+                    line = sr.ReadLine();
+                        Console.WriteLine("");
+                }
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("Main Exception: " + e.Message);
+            }
+
+
         }
     }
 }
