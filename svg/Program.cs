@@ -16,8 +16,6 @@ namespace ConsoleApp
 {
     class Program
     {
-        private static String SVG_FILE = "input.svg";
-        private static String OUTPUT_FILE = "result2.pdf";
 
         static void itextProcessSVG(string inputFile, string outputFile)
         {
@@ -31,17 +29,19 @@ namespace ConsoleApp
                     FileStream svgPath = File.Open(inputFile, FileMode.Open);
                     Image image = SvgConverter.ConvertToImage(svgPath, pdfDocument);
                     image.SetFixedPosition(0, 0);
-                    image.ScaleAbsolute(595, 842);
+                    image.ScaleToFit(PageSize.A4.GetWidth(), PageSize.A4.GetHeight());
+                    //image.ScaleAbsolute(595, 842);
                     doc.Add(image);
                 }
                 catch(Exception e){
                     doc.Add( new Paragraph(e.Message));
+                    Console.WriteLine(inputFile + " iText Exception: " + e.Message);
                 }
                 doc.Close();
             }
             catch(Exception e)
             {
-                Console.WriteLine(" Exception: " + e.Message);
+                Console.WriteLine(" iText Exception: " + e.Message);
             }
         }
         static void pdflibProcessSVG(string inputFile, string itextoutput, string outputFile)
@@ -60,7 +60,7 @@ namespace ConsoleApp
                 p.begin_document("", "");
                 graphics = p.load_graphics("auto", inputFile, "");
                 p.begin_page_ext(0, 0, "width=a4.width height=a4.height");
-                p.fit_graphics(graphics, 0, 0, "boxsize {595 842} fitmethod {meet}");
+                p.fit_graphics(graphics, 0, 0, "boxsize {595 842} fitmethod {meet} position {left center}");
                 p.end_page_ext("");
                 p.end_document("");
                 buf = p.get_buffer();
@@ -83,6 +83,7 @@ namespace ConsoleApp
                 p.fit_pdi_page(page, 0,0, "boxsize {595 842}");
                 p.close_pdi_page(page);
                 p.close_pdi_document(doc);
+                p.fit_textline("iText 8.0", 297, 0, "fontname=Helvetica-Bold fontsize 24 noembedding fillcolor=red position {50 0}");
                 if (message == ""){
                     doc = p.open_pdi_document("/pvf/input.pdf", "");
                     page = p.open_pdi_page(doc, 1,"");
@@ -92,9 +93,10 @@ namespace ConsoleApp
                 }
                 else
                 {
-                    p.fit_textline(message, 639, 700, "fontname=Helvetica fontsize 12 noembedding");
+                    p.fit_textline(message, 639, 700, "fontname=Helvetica-Bold fontsize 24 noembedding");
 
                 }
+                p.fit_textline("PDFlib 10.0", 892, 0, "fontname=Helvetica fontsize 24 noembedding fillcolor=red position {50 0}");
                 p.end_page_ext("");
                 p.end_document("");
             }
@@ -123,10 +125,9 @@ namespace ConsoleApp
                 //Continue to read until you reach end of file
                 while (line != null)
                 {
-                    Console.Write(line);
                     if (line.StartsWith("#"))
                     {
-                        Console.Write(" skipped");
+                        Console.Write(line + " skipped");
                     }
                     else
                     {
@@ -134,7 +135,6 @@ namespace ConsoleApp
                         pdflibProcessSVG(line, "output/" + System.IO.Path.GetFileName(line) + ".pdf", "output2/" + System.IO.Path.GetFileName(line) + ".pdf");
                     }
                     line = sr.ReadLine();
-                        Console.WriteLine("");
                 }
             }
             catch(Exception e)
