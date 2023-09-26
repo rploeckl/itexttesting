@@ -46,7 +46,7 @@ namespace ConsoleApp
         }
         static void pdflibProcessSVG(string inputFile, string itextoutput, string outputFile)
         {
-            PDFlib p = null;
+            PDFlib p;
             int graphics;
             string message = "";
             byte[] buf = new byte[0];
@@ -68,8 +68,8 @@ namespace ConsoleApp
             catch (PDFlibException e)
             {
                 message = e.get_errmsg();
-            }
-            p.Dispose();
+            } 
+
 
             int doc, page;
             try
@@ -104,13 +104,13 @@ namespace ConsoleApp
             {
                 message = e.get_errmsg();
             }
-            p.Dispose();
+ 
 
 
         }
         static void Main(string[] args)
         {
-            String line;
+            String? line;
             try
             {
                 if (args.Length != 1)
@@ -127,7 +127,7 @@ namespace ConsoleApp
                 {
                     if (line.StartsWith("#"))
                     {
-                        Console.Write(line + " skipped");
+                        Console.WriteLine(line + " skipped");
                     }
                     else
                     {
